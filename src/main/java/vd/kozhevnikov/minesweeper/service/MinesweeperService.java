@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import vd.kozhevnikov.minesweeper.dto.GameInfoResponse;
 import vd.kozhevnikov.minesweeper.dto.GameTurnRequest;
 import vd.kozhevnikov.minesweeper.dto.NewGameRequest;
+import vd.kozhevnikov.minesweeper.exception.CellOutOfBoundException;
 import vd.kozhevnikov.minesweeper.exception.GameNotFoundException;
 import vd.kozhevnikov.minesweeper.exception.GameOverException;
 import vd.kozhevnikov.minesweeper.exception.NotValidMinesCountException;
@@ -57,6 +58,8 @@ public class MinesweeperService {
             throw new GameNotFoundException(request.getGameId());
         } else if (game.isCompleted()) {
             throw new GameOverException(request.getGameId());
+        } else if (request.getCol() >= game.getWidth() || request.getRow() >= game.getHeight()) {
+            throw new CellOutOfBoundException(request.getCol(), request.getRow());
         } else if (game.getCheckedCoordinates().contains(new Cell.Coordinate(request.getCol(), request.getRow()))) {
             throw new OpenedCellException(request.getCol(), request.getRow());
         }

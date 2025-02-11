@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>vd.kozhevnikov</groupId>
 	<artifactId>minesweeper</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>minesweeper</name>
 	<description>Minesweeper web app</description>
 	<url/>

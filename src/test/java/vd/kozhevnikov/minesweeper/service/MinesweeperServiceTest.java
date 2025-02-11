@@ -6,6 +6,7 @@ import vd.kozhevnikov.minesweeper.dto.GameInfoResponse;
 import vd.kozhevnikov.minesweeper.dto.GameTurnRequest;
 import vd.kozhevnikov.minesweeper.dto.NewGameRequest;
 import vd.kozhevnikov.minesweeper.exception.BaseHttpException;
+import vd.kozhevnikov.minesweeper.exception.CellOutOfBoundException;
 import vd.kozhevnikov.minesweeper.exception.GameNotFoundException;
 import vd.kozhevnikov.minesweeper.exception.GameOverException;
 import vd.kozhevnikov.minesweeper.exception.NotValidMinesCountException;
@@ -73,7 +74,7 @@ public class MinesweeperServiceTest {
 
         GameInfoResponse actual = minesweeperService.makeTurn(gameTurnRequest);
         String[][] expectedField = new String[newGameRequest.getHeight()][newGameRequest.getWidth()];
-        for(String[] row : expectedField) {
+        for (String[] row : expectedField) {
             Arrays.fill(row, "0");
         }
 
@@ -95,5 +96,20 @@ public class MinesweeperServiceTest {
         assertThat(throwable).isInstanceOf(GameOverException.class);
         assertThat(((BaseHttpException) throwable).getMessageTemplate())
                 .isEqualTo("Игра с gameId = %s уже завершена.");
+    }
+
+    @Test
+    void makeTurn_cellOutOfBound_throwCellOutOfBoundException() {
+        NewGameRequest newGameRequest = buildObject("/dto/NewGameRequest.json", NewGameRequest.class);
+        GameInfoResponse game = minesweeperService.createGame(newGameRequest);
+        GameTurnRequest gameTurnRequest = buildObject("/dto/GameTurnRequest.json", GameTurnRequest.class);
+        gameTurnRequest.setGameId(game.getGameId().toString());
+        gameTurnRequest.setRow(15);
+
+        Throwable throwable = catchThrowable(() -> minesweeperService.makeTurn(gameTurnRequest));
+
+        assertThat(throwable).isInstanceOf(CellOutOfBoundException.class);
+        assertThat(((BaseHttpException) throwable).getMessageTemplate())
+                .isEqualTo("Ячейка с координатами (%s, %s) выходит за границы поля");
     }
 }

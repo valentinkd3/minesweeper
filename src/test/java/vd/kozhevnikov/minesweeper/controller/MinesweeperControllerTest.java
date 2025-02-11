@@ -13,6 +13,7 @@ import vd.kozhevnikov.minesweeper.dto.ErrorResponse;
 import vd.kozhevnikov.minesweeper.dto.GameInfoResponse;
 import vd.kozhevnikov.minesweeper.dto.GameTurnRequest;
 import vd.kozhevnikov.minesweeper.dto.NewGameRequest;
+import vd.kozhevnikov.minesweeper.exception.CellOutOfBoundException;
 import vd.kozhevnikov.minesweeper.exception.GameNotFoundException;
 import vd.kozhevnikov.minesweeper.exception.GameOverException;
 import vd.kozhevnikov.minesweeper.exception.NotValidMinesCountException;
@@ -60,7 +61,7 @@ public class MinesweeperControllerTest {
     void createGame_success_200ok() {
         when(minesweeperService.createGame(newGameRequest)).thenReturn(gameInfoResponse);
 
-        mockMvc.perform(post("/new")
+        mockMvc.perform(post("/api/v1/new")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(newGameRequest)))
                 .andExpect(status().is2xxSuccessful())
@@ -72,7 +73,7 @@ public class MinesweeperControllerTest {
     void makeTurn_success_200ok() {
         when(minesweeperService.makeTurn(gameTurnRequest)).thenReturn(gameInfoResponse);
 
-        mockMvc.perform(post("/turn")
+        mockMvc.perform(post("/api/v1/turn")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(gameTurnRequest)))
                 .andExpect(status().is2xxSuccessful())
@@ -86,7 +87,7 @@ public class MinesweeperControllerTest {
         newGameRequest.setWidth(1000);
         newGameRequest.setMinesCount(null);
 
-        mockMvc.perform(post("/new")
+        mockMvc.perform(post("/api/v1/new")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newGameRequest)))
                 .andExpect(status().is4xxClientError())
@@ -102,7 +103,7 @@ public class MinesweeperControllerTest {
         gameTurnRequest.setCol(null);
         gameTurnRequest.setRow(10000);
 
-        mockMvc.perform(post("/turn")
+        mockMvc.perform(post("/api/v1/turn")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(gameTurnRequest)))
                 .andExpect(status().is4xxClientError())
@@ -119,7 +120,7 @@ public class MinesweeperControllerTest {
         errorResponse = new ErrorResponse(String.format("Игры с gameId = %s не существует.", gameId));
         when(minesweeperService.makeTurn(gameTurnRequest)).thenThrow(gameNotFoundException);
 
-        mockMvc.perform(post("/turn")
+        mockMvc.perform(post("/api/v1/turn")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(gameTurnRequest)))
                 .andExpect(status().is4xxClientError())
@@ -134,7 +135,7 @@ public class MinesweeperControllerTest {
         errorResponse = new ErrorResponse(String.format("Игра с gameId = %s уже завершена.", gameId));
         when(minesweeperService.makeTurn(gameTurnRequest)).thenThrow(gameOverException);
 
-        mockMvc.perform(post("/turn")
+        mockMvc.perform(post("/api/v1/turn")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(gameTurnRequest)))
                 .andExpect(status().is4xxClientError())
@@ -146,10 +147,25 @@ public class MinesweeperControllerTest {
     void makeTurn_throwOpenedCellException_handleOpenedCellException() {
         OpenedCellException openedCellException = new OpenedCellException(gameTurnRequest.getCol(), gameTurnRequest.getRow());
         errorResponse = new ErrorResponse(String.format(
-                "Ячека с координатами (%s, %s) была проверена ранее", gameTurnRequest.getCol(), gameTurnRequest.getRow()));
+                "Ячейка с координатами (%s, %s) была проверена ранее", gameTurnRequest.getCol(), gameTurnRequest.getRow()));
         when(minesweeperService.makeTurn(gameTurnRequest)).thenThrow(openedCellException);
 
-        mockMvc.perform(post("/turn")
+        mockMvc.perform(post("/api/v1/turn")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(gameTurnRequest)))
+                .andExpect(status().is4xxClientError())
+                .andExpect(content().string(objectMapper.writeValueAsString(errorResponse)));
+    }
+
+    @Test
+    @SneakyThrows
+    void makeTurn_throwCellOutOfBoundException_handleCellOutOfBoundException() {
+        CellOutOfBoundException cellOutOfBoundException = new CellOutOfBoundException(gameTurnRequest.getCol(), gameTurnRequest.getRow());
+        errorResponse = new ErrorResponse(String.format(
+                "Ячейка с координатами (%s, %s) выходит за границы поля", gameTurnRequest.getCol(), gameTurnRequest.getRow()));
+        when(minesweeperService.makeTurn(gameTurnRequest)).thenThrow(cellOutOfBoundException);
+
+        mockMvc.perform(post("/api/v1/turn")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(gameTurnRequest)))
                 .andExpect(status().is4xxClientError())
@@ -163,7 +179,7 @@ public class MinesweeperControllerTest {
         NotValidMinesCountException notValidMinesCountException = new NotValidMinesCountException();
         when(minesweeperService.createGame(newGameRequest)).thenThrow(notValidMinesCountException);
 
-        mockMvc.perform(post("/new")
+        mockMvc.perform(post("/api/v1/new")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newGameRequest)))
                 .andExpect(status().is4xxClientError())
